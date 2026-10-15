@@ -1,0 +1,11 @@
+# ── Core backend (frozen into the Electron build via PyInstaller) ──
+flask==3.1.3
+PyMuPDF==1.27.2.2
+
+# ── Alternate native launcher (launch.py only; not used by Electron) ──
+pywebview==6.2.1
+
+# ── Dropped for v1 (re-add when the features are wired into the UI) ──
+# anthropic==0.97.0      # AI summarize  (/summarize route, removed)
+# pytesseract==0.3.13    # OCR for scanned PDFs (optional, graceful fallback)
+# pillow==12.2.0         # required only by the OCR path above

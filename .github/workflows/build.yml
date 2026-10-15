@@ -1,0 +1,77 @@
+name: Build installers
+
+# Builds the Lemur desktop installers for Windows and macOS and publishes them,
+# with the auto-update metadata, as a GitHub Release of this repository.
+#
+# Each matrix job, on its own native runner:
+#   1. freezes the Flask backend with PyInstaller (no cross-compiling)
+#   2. packages the Electron app + frozen backend with electron-builder
+#   3. uploads the installer + latest.yml / latest-mac.yml to the Release
+#      named after the version in package.json (created if needed)
+#
+# Installed copies of Lemur poll this repository's Releases for updates (see
+# `publish` in electron-builder.config.js).
+
+# Manual: a run publishes a live release to every user, so shipping is a
+# deliberate click (Actions → Build installers → Run workflow).
+on:
+  workflow_dispatch:
+
+# Creating the Release and uploading assets needs write access to this repo.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false       # one platform failing shouldn't cancel the other
+      matrix:
+        include:
+          - name: Windows (x64)
+            os: windows-latest
+            mac_arch: ''
+          - name: macOS (Apple Silicon)
+            os: macos-14            # arm64 runner
+            mac_arch: arm64
+          # Intel Macs aren't built (Apple Silicon covers Macs from late 2020
+          # on). To add them back:
+          #   - name: macOS (Intel)
+          #     os: macos-13
+          #     mac_arch: x64
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # ── Freeze the Flask backend (PyInstaller) ──────────────────────────
+      - name: Install backend build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Freeze backend
+        run: pyinstaller lemur-server.spec --noconfirm --distpath dist --workpath build_pyi
+
+      # ── Package the Electron app and publish it ─────────────────────────
+      - name: Install Node deps
+        run: npm ci
+
+      - name: Build & publish installer + update metadata
+        env:
+          LEMUR_BACKEND_DIST: dist/lemur-server
+          LEMUR_OUTPUT_DIR: release
+          LEMUR_MAC_ARCH: ${{ matrix.mac_arch }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # The workflow's own token can publish to this repository's Releases.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --config electron-builder.config.js --publish always

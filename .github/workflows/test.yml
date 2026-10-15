@@ -1,0 +1,39 @@
+name: Tests
+
+# Runs the automated test suite on every push and pull request. Cheap: Linux
+# runners only, and no installers are built. (Installers: build.yml.)
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python + Node tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Python tests (reading order, data migration, request guard, settings)
+        run: python -m unittest discover -s tests -t . -v
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # The Node tests only use built-in modules, so no `npm ci` is needed.
+      - name: Node tests (storage-partition migration)
+        run: node --test "tests/*.test.js"

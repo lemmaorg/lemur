@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+*.spec
+# keep the backend build spec under version control
+!lemur-server.spec
+
+# Build output — keep only the app icons electron-builder reads
+# (trailing comments on negation lines break the pattern, so keep them separate)
+build/*
+# Windows app icon
+!build/icon.ico
+# macOS icon source (electron-builder generates .icns from this)
+!build/icon.png
+# macOS ad-hoc signing entitlements
+!build/entitlements.mac.plist
+
+# PyInstaller / installer staging (built outside the repo, in C:/Lemur-build)
+backend-dist/
+backend-build/
+
+# Runtime logs (regenerated on each launch)
+electron.log
+*.log
+_flask_out.txt
+_flask_err.txt
+_flask_log.txt
+app_log.txt
+server.log
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Throwaway icon-comparison previews (regenerate from build-icons.mjs if needed)
+icon-preview*.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code tooling — local dev config & per-machine permission allowlists.
+# Never part of the product; settings.local.json holds absolute local paths.
+.claude/
+
+# Internal planning docs — kept local, not shipped in the product repo.
+LAUNCH_CHECKLIST.md
