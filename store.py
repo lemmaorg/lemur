@@ -108,8 +108,13 @@ def _data_dir() -> Path:
     p = _resolve_data_dir()
     p.mkdir(parents=True, exist_ok=True)
     if not _migration_checked:
-        _migration_checked = True
-        migrate_legacy_data(p)
+        # Under the store lock, and the flag is only set once the copy is done,
+        # so a request arriving mid-migration waits instead of seeing an
+        # empty, not-yet-copied library.
+        with _LOCK:
+            if not _migration_checked:
+                migrate_legacy_data(p)
+                _migration_checked = True
     return p
 
 

@@ -90,6 +90,30 @@ class MigrateLegacyData(unittest.TestCase):
         self.assertTrue((self.new / 'library.json').exists())
 
 
+class MigrationIsAtomicForCallers(unittest.TestCase):
+    def test_requests_during_migration_wait_for_the_copy(self):
+        # A second caller arriving while the first-launch copy is still running
+        # must not see the data folder before library.json has been copied.
+        import threading
+        import time
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.dict(os.environ, {'LEMUR_DATA_DIR': d}), \
+                mock.patch.object(store, '_migration_checked', False):
+
+            def slow_migration(new_dir, legacy_dirs=None):
+                time.sleep(0.3)
+                (new_dir / 'library.json').write_text('[]', encoding='utf-8')
+
+            seen = {}
+            with mock.patch.object(store, 'migrate_legacy_data', slow_migration):
+                first = threading.Thread(target=store._data_dir)
+                first.start()
+                time.sleep(0.05)                       # let the copy begin
+                seen['library'] = (store._data_dir() / 'library.json').exists()
+                first.join()
+            self.assertTrue(seen['library'])
+
+
 class ResolveDataDir(unittest.TestCase):
     def test_lemur_data_dir_env_wins(self):
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {'LEMUR_DATA_DIR': d}):
